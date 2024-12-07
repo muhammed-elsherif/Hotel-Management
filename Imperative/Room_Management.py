@@ -80,7 +80,7 @@ class RoomManagementApp:
         room = self.get_room_by_number(room_number)
         if room:
             status = room.check_status()
-            messagebox.showinfo("Status", status)
+            self.status_label.config(text=f"Status: {status}")
 
 if __name__ == "__main__":
     root = tk.Tk()
