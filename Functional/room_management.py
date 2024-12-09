@@ -1,93 +1,102 @@
 import tkinter as tk
 from tkinter import messagebox
+import mysql.connector
 
-def create_room(room_number, room_type, price):
-    return {"roomNumber": room_number, "roomType": room_type, "price": price, "availability": True}
+db = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="root",
+    database="hotel_management"
+)
+cursor = db.cursor()
 
-def book_room(room):
-    if room["availability"]:
-        new_room = {**room, "availability": False}
-        messagebox.showinfo("Room Booked", f"Room {room['roomNumber']} has been booked.")
-        return new_room
+def fetch_rooms():
+    cursor.execute("SELECT roomNumber, roomType, price FROM rooms")
+    return cursor.fetchall()
+
+def check_room_status(room_number):
+    query = "SELECT availability FROM rooms WHERE roomNumber = %s"
+    cursor.execute(query, (room_number,))
+    result = cursor.fetchone()
+    return "Available" if result and result[0] else "Booked"
+
+def book_room(room_number):
+    if check_room_status(room_number) == "Available":
+        query = "UPDATE rooms SET availability = FALSE WHERE roomNumber = %s"
+        cursor.execute(query, (room_number,))
+        db.commit()
+        return f"Room {room_number} has been booked successfully."
     else:
-        messagebox.showwarning("Booking Error", f"Room {room['roomNumber']} is already booked.")
-        return room
+        return f"Room {room_number} is already booked."
 
-def release_room(room):
-    if not room["availability"]:
-        new_room = {**room, "availability": True}
-        messagebox.showinfo("Room Released", f"Room {room['roomNumber']} is now available.")
-        return new_room
+def release_room(room_number):
+    if check_room_status(room_number) == "Booked":
+        query = "UPDATE rooms SET availability = TRUE WHERE roomNumber = %s"
+        cursor.execute(query, (room_number,))
+        db.commit()
+        return f"Room {room_number} is now available."
     else:
-        messagebox.showwarning("Release Error", f"Room {room['roomNumber']} is already available.")
-        return room
+        return f"Room {room_number} is already available."
 
-def check_status(room):
-    return "Available" if room["availability"] else "Booked"
+def create_room_management_ui(root):
+    frame = tk.Frame(root)
+    frame.pack()
 
-class RoomManagementApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Hotel Management System")
+    rooms = fetch_rooms()
+    room_numbers = [room[0] for room in rooms]
 
-        self.rooms = [
-            create_room(101, "Single", 100),
-            create_room(102, "Double", 150),
-            create_room(201, "Suite", 300),
-        ]
+    def update_status_label():
+        room_number = selected_room.get()
+        status = check_room_status(room_number)
+        status_label.config(text=f"Status: Room {room_number} is {status}.")
 
-        tk.Label(root, text="Select Room:").grid(row=0, column=0, padx=10, pady=10)
-        self.selected_room = tk.StringVar(root)
-        room_numbers = [room['roomNumber'] for room in self.rooms]
-        self.room_menu = tk.OptionMenu(root, self.selected_room, *room_numbers)
-        self.room_menu.grid(row=0, column=1, padx=10, pady=10)
-        # self.room_listbox = tk.Listbox(root, height=10, width=50)
-        # self.room_listbox.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
+    def handle_book_room():
+        room_number = selected_room.get()
+        result = book_room(room_number)
+        messagebox.showinfo("Booking", result)
+        update_status_label()
 
-        # self.refresh_room_list()
+    def handle_release_room():
+        room_number = selected_room.get()
+        result = release_room(room_number)
+        messagebox.showinfo("Release", result)
+        update_status_label()
 
-        self.book_button = tk.Button(root, text="Book Room", command=self.book_selected_room)
-        self.book_button.grid(row=1, column=0, padx=5, pady=5)
+    title_frame = tk.Frame(frame)
+    title_frame.pack(pady=10)
+    tk.Label(title_frame, text="Hotel Management System", font=("Arial", 16, "bold")).pack()
 
-        self.release_button = tk.Button(root, text="Release Room", command=self.release_selected_room)
-        self.release_button.grid(row=1, column=1, padx=5, pady=5)
+    main_frame = tk.Frame(frame)
+    main_frame.pack(pady=20)
 
-        self.status_button = tk.Button(root, text="Check Status", command=self.check_selected_room_status)
-        self.status_button.grid(row=1, column=2, padx=5, pady=5)
+    tk.Label(main_frame, text="Select Room:", font=("Arial", 12)).grid(row=0, column=0, padx=10, pady=10)
+    selected_room = tk.StringVar()
+    selected_room.set(room_numbers[0] if room_numbers else "")
+    room_menu = tk.OptionMenu(main_frame, selected_room, *room_numbers)
+    room_menu.grid(row=0, column=1, padx=10, pady=10)
 
-    def refresh_room_list(self):
-        self.room_listbox.delete(0, tk.END)
-        for room in self.rooms:
-            status = check_status(room)
-            self.room_listbox.insert(tk.END, f"Room {room['roomNumber']} ({room['roomType']}): ${room['price']} - {status}")
+    button_frame = tk.Frame(frame)
+    button_frame.pack(pady=20)
 
-    def get_selected_room(self):
-        selected_index = self.room_listbox.curselection()
-        if not selected_index:
-            messagebox.showwarning("Selection Error", "No room selected!")
-            return None
-        return selected_index[0]
+    tk.Button(button_frame, text="Book Room", font=("Arial", 12), width=15, bg="lightblue", command=handle_book_room).grid(row=0, column=0, padx=10)
+    tk.Button(button_frame, text="Release Room", font=("Arial", 12), width=15, bg="lightgreen", command=handle_release_room).grid(row=0, column=1, padx=10)
+    tk.Button(button_frame, text="Check Status", font=("Arial", 12), width=15, bg="lightgray", command=update_status_label).grid(row=1, column=0, padx=10, pady=10)
 
-    def book_selected_room(self):
-        index = self.get_selected_room()
-        if index is not None:
-            self.rooms[index] = book_room(self.rooms[index])
-            self.refresh_room_list()
+    status_label = tk.Label(frame, text="Status: ", font=("Arial", 12), fg="white")
+    status_label.pack(pady=20)
 
-    def release_selected_room(self):
-        index = self.get_selected_room()
-        if index is not None:
-            self.rooms[index] = release_room(self.rooms[index])
-            self.refresh_room_list()
+    return frame
 
-    def check_selected_room_status(self):
-        index = self.get_selected_room()
-        if index is not None:
-            status = check_status(self.rooms[index])
-            room_number = self.rooms[index]["roomNumber"]
-            messagebox.showinfo("Room Status", f"Room {room_number} is {status}.")
+def main():
+    root = tk.Tk()
+    root.title("Hotel Management System")
+    root.geometry("500x400")
+    root.resizable(False, False)
+
+    room_management_frame = create_room_management_ui(root)
+    room_management_frame.pack()
+
+    root.mainloop()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = RoomManagementApp(root)
-    root.mainloop()
+    main()

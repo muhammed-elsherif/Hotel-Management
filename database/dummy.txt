@@ -1,0 +1,39 @@
+-- Insert dummy data into rooms table
+INSERT INTO rooms (roomType, price, availability)
+VALUES 
+('Single', 100.00, TRUE),
+('Double', 150.00, FALSE),
+('Suite', 300.00, TRUE),
+('Single', 120.00, FALSE),
+('Double', 200.00, TRUE),
+('Single', 110.00, TRUE),
+('Suite', 350.00, FALSE),
+('Double', 180.00, TRUE);
+
+-- Insert dummy data into customers table
+INSERT INTO customers (name, contactInfo, paymentMethod)
+VALUES 
+('John Doe', 'john.doe@example.com', 'Credit Card'),
+('Jane Smith', 'jane.smith@example.com', 'Cash'),
+('Alice Brown', 'alice.brown@example.com', 'Debit Card'),
+('Bob Johnson', 'bob.johnson@example.com', 'Credit Card'),
+('Emily Davis', 'emily.davis@example.com', 'PayPal'),
+('Michael Scott', 'michael.scott@example.com', 'Credit Card');
+
+-- Insert dummy data into reservations table
+INSERT INTO reservations (customerId, roomNumber, checkInDate, checkOutDate)
+VALUES 
+(1, 1, '2024-12-10', '2024-12-12'),
+(2, 2, '2024-12-11', '2024-12-14'),
+(3, 4, '2024-12-12', '2024-12-16'),
+(4, 7, '2024-12-13', '2024-12-15'),
+(5, 5, '2024-12-14', '2024-12-20');
+
+-- Insert dummy data into bills table
+INSERT INTO bills (customerId, reservationId, totalAmount, taxes, discounts, paymentStatus)
+VALUES 
+(1, 1, 250.00, 25.00, 0.00, 'Paid'),
+(2, 2, 450.00, 45.00, 10.00, 'Pending'),
+(3, 3, 600.00, 60.00, 0.00, 'Paid'),
+(4, 4, 800.00, 80.00, 20.00, 'Pending'),
+(5, 5, 1500.00, 150.00, 50.00, 'Paid');
