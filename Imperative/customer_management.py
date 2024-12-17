@@ -1,14 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-import mysql.connector
-
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="root",
-    database="hotel_management"
-)
-cursor = db.cursor()
+from config import db, cursor
 
 class Customer:
     def __init__(self, customer_id, name, contact_info, payment_method):
@@ -36,6 +28,19 @@ class Customer:
         cursor.execute(query, (name, contact_info, payment_method, self.customer_id))
         db.commit()
         return "Customer information updated successfully."
+    
+    @staticmethod
+    def add_customer_info(name, contact_info, payment_method):
+        try:
+            query = """
+            INSERT INTO customers (name, contactInfo, paymentMethod)
+            VALUES (%s, %s, %s)
+            """
+            cursor.execute(query, (name, contact_info, payment_method))
+            db.commit()
+            return cursor.lastrowid
+        except Exception as e:
+            return f"Error adding customer info: {e}"
 
 class CustomerManagementApp:
     def __init__(self, parent_frame):

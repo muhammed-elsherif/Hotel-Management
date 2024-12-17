@@ -1,11 +1,11 @@
+import tkinter as tk
 import room_management
 import customer_management
-import tkinter as tk
-
 class NavigationBar(tk.Frame):
     def __init__(self, root):
         super().__init__(root)
-        self.pack()
+        self.root = root
+        self.pack(side=tk.TOP, fill=tk.X)
         self.pages = {}
         self.setup_ui()
 
@@ -16,21 +16,25 @@ class NavigationBar(tk.Frame):
     def switch_page(self, page_name):
         for page in self.pages.values():
             page.hide()
+
         if page_name in self.pages:
             self.pages[page_name].show()
-
-
+        else:
+            tk.messagebox.showerror("Error", f"Page '{page_name}' not found.")
 class MainApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Hotel Management System")
+        self.root.geometry("800x600")
+
         self.navbar = NavigationBar(self.root)
 
-        self.navbar.pages["room_management"] = room_management.RoomManagementApp(self.navbar)
-        self.navbar.pages["customer_management"] = customer_management.CustomerManagementApp(self.navbar)
+        # Initialize pages and add them to the navigation bar
+        self.navbar.pages["room_management"] = room_management.RoomManagementApp(self.root)
+        self.navbar.pages["customer_management"] = customer_management.CustomerManagementApp(self.root)
 
+        # Show the default page
         self.navbar.switch_page("room_management")
-
 
 if __name__ == "__main__":
     root = tk.Tk()
