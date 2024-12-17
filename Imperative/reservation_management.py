@@ -58,30 +58,6 @@ class ReservationSystem:
                 messagebox.showerror("Error", response)
 
         tk.Button(customer_form, text="Submit", font=("Arial", 12), command=submit_customer_info).grid(row=3, columnspan=2, pady=10)
-
-    def show_check_in_out_form(self):
-        form = tk.Toplevel(self.frame)
-        form.title("Check In/Check Out")
-
-        tk.Button(form, text="Check In", font=("Arial", 12), width=15, command=self.check_in).pack(pady=10)
-        tk.Button(form, text="Check Out", font=("Arial", 12), width=15, command=self.check_out).pack(pady=10)
-
-    def check_in(self):
-        query = "UPDATE reservations SET checkInDate = CURDATE() WHERE roomNumber = %s AND checkInDate IS NULL"
-        cursor.execute(query, (self.room,))
-        db.commit()
-        messagebox.showinfo("Check In", f"Room {self.room} checked in successfully!")
-
-    def check_out(self):
-        query = "UPDATE reservations SET checkOutDate = CURDATE() WHERE roomNumber = %s AND checkOutDate IS NULL"
-        cursor.execute(query, (self.room,))
-        db.commit()
-
-        query = "UPDATE rooms SET availability = TRUE WHERE roomNumber = %s"
-        cursor.execute(query, (self.room,))
-        db.commit()
-
-        messagebox.showinfo("Check Out", f"Room {self.room} checked out successfully!")
     
     def create_reservation(self, customer_id, room_number):
         try:
