@@ -1,43 +1,84 @@
-def check_room_availability(connection, room_number: int, check_in: str, check_out: str) -> bool:
-    """Check if a room is available in the given date range."""
-    cursor = connection.cursor(dictionary=True)
-    query = """
-    SELECT * FROM reservations 
-    WHERE room_number = %s AND (
-        (check_in_date <= %s AND check_out_date >= %s) OR
-        (check_in_date <= %s AND check_out_date >= %s)
-    )
-    """
-    cursor.execute(query, (room_number, check_out, check_in, check_in, check_out))
-    result = cursor.fetchall()
-    return len(result) == 0
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import ttk
+import customer_management
+from config import db, cursor
 
 
-def book_room(connection, customer_id: int, room_number: int, check_in: str, check_out: str) -> str:
-    """Book a room if available."""
-    if check_room_availability(connection, room_number, check_in, check_out):
-        cursor = connection.cursor()
-        query = "INSERT INTO reservations (customer_id, room_number, check_in_date, check_out_date) VALUES (%s, %s, %s, %s)"
-        cursor.execute(query, (customer_id, room_number, check_in, check_out))
-        connection.commit()
-        return "Room booked successfully!"
+def create_reservation(customer_id, room_number):
+    """Create a reservation in the database and book the room."""
+    try:
+        query = """
+        INSERT INTO reservations (customerId, roomNumber, checkInDate, checkOutDate)
+        VALUES (%s, %s, CURDATE(), NULL)
+        """
+        cursor.execute(query, (customer_id, room_number))
+        db.commit()
+        book_room(room_number)
+        messagebox.showinfo("Reservation", f"Room {room_number} booked successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error creating reservation: {e}")
+
+
+def book_room(room_number):
+    """Mark the room as booked in the database."""
+    query = "UPDATE rooms SET availability = FALSE WHERE roomNumber = %s"
+    cursor.execute(query, (room_number,))
+    db.commit()
+
+
+def add_customer_info_and_reserve(room, customer_form, name_entry, contact_entry, payment_combobox):
+    """Handle customer information submission and reservation creation."""
+    name = name_entry.get()
+    contact = contact_entry.get()
+    payment_method = payment_combobox.get()
+
+    if not all([name, contact, payment_method]):
+        messagebox.showerror("Error", "All fields are required.")
+        return
+
+    response = customer_management.add_customer_info(name, contact, payment_method)
+    if isinstance(response, int):  # Assuming a successful response returns the customer ID
+        customer_id = response
+        create_reservation(customer_id, room)
+        customer_form.destroy()
     else:
-        return "Room is not available for the selected dates."
+        messagebox.showerror("Error", response)
 
 
-def check_in_guest(connection, reservation_id: int) -> str:
-    """Mark a room as checked-in."""
-    cursor = connection.cursor()
-    query = "UPDATE reservations SET status = 'checked-in' WHERE reservation_id = %s"
-    cursor.execute(query, (reservation_id,))
-    connection.commit()
-    return "Guest checked in successfully!"
+def show_customer_form(parent_frame, room):
+    """Display a form for collecting customer information."""
+    customer_form = tk.Toplevel(parent_frame)
+    customer_form.title("Customer Information")
+
+    # Form fields
+    tk.Label(customer_form, text="Customer Name:", font=("Arial", 12)).grid(row=0, column=0, padx=10, pady=10)
+    name_entry = tk.Entry(customer_form, font=("Arial", 12))
+    name_entry.grid(row=0, column=1, padx=10, pady=10)
+
+    tk.Label(customer_form, text="Contact Info:", font=("Arial", 12)).grid(row=1, column=0, padx=10, pady=10)
+    contact_entry = tk.Entry(customer_form, font=("Arial", 12))
+    contact_entry.grid(row=1, column=1, padx=10, pady=10)
+
+    tk.Label(customer_form, text="Payment Method:", font=("Arial", 12)).grid(row=2, column=0, padx=10, pady=10)
+    payment_methods = ["Credit Card", "Debit Card", "Cash", "UPI"]
+    payment_combobox = ttk.Combobox(customer_form, values=payment_methods, font=("Arial", 12), state="readonly")
+    payment_combobox.grid(row=2, column=1, padx=10, pady=10)
+    payment_combobox.set("Select Payment Method")
+
+    # Submit button
+    tk.Button(
+        customer_form,
+        text="Submit",
+        font=("Arial", 12),
+        command=lambda: add_customer_info_and_reserve(room, customer_form, name_entry, contact_entry, payment_combobox)
+    ).grid(row=3, columnspan=2, pady=10)
 
 
-def check_out_guest(connection, reservation_id: int) -> str:
-    """Mark a room as available after check-out."""
-    cursor = connection.cursor()
-    query = "UPDATE reservations SET status = 'checked-out' WHERE reservation_id = %s"
-    cursor.execute(query, (reservation_id,))
-    connection.commit()
-    return "Guest checked out successfully!"
+def reservation_system(parent_frame, room):
+    """Launch the reservation system for a specific room."""
+    frame = tk.Frame(parent_frame)
+    frame.pack()
+
+    # Open the customer form
+    show_customer_form(frame, room)
